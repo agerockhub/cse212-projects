@@ -4,9 +4,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace PriorityQueueTestsAndImplementation
 {
-    // =========================================================================
+    // ============================================================
     // CODE UNDER TEST (PRODUCTION CODE)
-    // =========================================================================
+    // =============================================================
 
     public class PriorityItem
     {
