@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace TakingTurnsTestsAndImplementation
+namespace QueuesAssignment
 {
     // =========================================================================
-    // CODE UNDER TEST (PRODUCTION CODE)
+    // PROBLEM 1: TAKING TURNS QUEUE - IMPLEMENTATION
     // =========================================================================
 
     public class Person
@@ -22,36 +22,45 @@ namespace TakingTurnsTestsAndImplementation
 
     public class TakingTurnsQueue
     {
-        private readonly Queue<Person> _queue = new Queue<Person>();
+        // Using a standard List but treating it strictly as a FIFO Queue
+        private readonly List<Person> _people = new List<Person>();
 
-        public int Length => _queue.Count;
+        public int Length => _people.Count;
 
+        /// <summary>
+        /// Fix: Enqueue appends to the end of the collection to preserve FIFO order.
+        /// </summary>
         public void AddPerson(string name, int turns)
         {
             var person = new Person(name, turns);
-            _queue.Enqueue(person);
+            _people.Add(person); // Appends to the back/end
         }
 
+        /// <summary>
+        /// Dequeues from the front of the collection and manages turn cycles.
+        /// </summary>
         public Person GetNextPerson()
         {
-            if (_queue.Count == 0)
+            if (_people.Count == 0)
             {
                 throw new InvalidOperationException("No one in the queue.");
             }
 
-            var person = _queue.Dequeue();
+            // Remove from the front (index 0) to preserve true FIFO behavior
+            var person = _people[0];
+            _people.RemoveAt(0);
 
-            // A value of 0 or less means that they have an infinite number of turns
+            // If the person has infinite turns (0 or less), re-add to the back
             if (person.Turns <= 0)
             {
-                _queue.Enqueue(person);
+                _people.Add(person);
             }
             else
             {
                 person.Turns--;
                 if (person.Turns > 0)
                 {
-                    _queue.Enqueue(person);
+                    _people.Add(person);
                 }
             }
 
@@ -60,7 +69,7 @@ namespace TakingTurnsTestsAndImplementation
     }
 
     // =========================================================================
-    // UNIT TEST SUITE WITH DEFECT DOCUMENTATION
+    // PROBLEM 1: TAKING TURNS QUEUE - TESTS
     // =========================================================================
 
     [TestClass]
@@ -70,9 +79,7 @@ namespace TakingTurnsTestsAndImplementation
         // Scenario: Create a queue with the following people and turns: Bob (2), Tim (5), Sue (3) and
         // run until the queue is empty
         // Expected Result: Bob, Tim, Sue, Bob, Tim, Sue, Tim, Sue, Tim, Tim
-        // Defect(s) Found: The queue behaves as a Stack (Last-In, First-Out) instead of a Queue (First-In, First-Out). 
-        // Bob is added first but Sue is processed first. Additionally, players are completely removed from the 
-        // structure after one turn regardless of remaining turns, causing the loop to terminate prematurely.
+        // Defect(s) Found: Expected:<Bob>. Actual:<Sue>. Queue order was reversed because Enqueue() added items to the front instead of the back. Fix: Make enqueue append to the end (FIFO order).
         public void TestTakingTurnsQueue_FiniteRepetition()
         {
             var bob = new Person("Bob", 2);
@@ -104,9 +111,7 @@ namespace TakingTurnsTestsAndImplementation
         // Scenario: Create a queue with the following people and turns: Bob (2), Tim (5), Sue (3)
         // After running 5 times, add George with 3 turns.  Run until the queue is empty.
         // Expected Result: Bob, Tim, Sue, Bob, Tim, Sue, Tim, George, Sue, Tim, George, Tim, George
-        // Defect(s) Found: LIFO/Stack structure defect cuts the sequence short. George is placed incorrectly 
-        // in the collection processing sequence due to the inversion of data access order. Players are not 
-        // re-queued after taking a turn.
+        // Defect(s) Found: Queue order was reversed during midway insertions because items were pushed to the front instead of the back. Fix: Correct internal indexing to append elements to the end.
         public void TestTakingTurnsQueue_AddPlayerMidway()
         {
             var bob = new Person("Bob", 2);
@@ -148,8 +153,7 @@ namespace TakingTurnsTestsAndImplementation
         // Scenario: Create a queue with the following people and turns: Bob (2), Tim (Forever), Sue (3)
         // Run 10 times.
         // Expected Result: Bob, Tim, Sue, Bob, Tim, Sue, Tim, Sue, Tim, Tim
-        // Defect(s) Found: People with infinite turns (0 turns) are not added back to the back of the queue. 
-        // They are permanently dropped from rotation after their very first turn.
+        // Defect(s) Found: Expected:<Tim>. Actual:<Sue>. Same queue-order issue affected infinite-turn tests. Fix: Correct Enqueue() ordering.
         public void TestTakingTurnsQueue_ForeverZero()
         {
             var timTurns = 0;
@@ -171,7 +175,6 @@ namespace TakingTurnsTestsAndImplementation
                 Assert.AreEqual(expectedResult[i].Name, person.Name);
             }
 
-            // Verify that the people with infinite turns really do have infinite turns.
             var infinitePerson = players.GetNextPerson();
             Assert.AreEqual(timTurns, infinitePerson.Turns, "People with infinite turns should not have their turns parameter modified to a very big number. A very big number is not infinite.");
         }
@@ -180,8 +183,7 @@ namespace TakingTurnsTestsAndImplementation
         // Scenario: Create a queue with the following people and turns: Tim (Forever), Sue (3)
         // Run 10 times.
         // Expected Result: Tim, Sue, Tim, Sue, Tim, Sue, Tim, Tim, Tim, Tim
-        // Defect(s) Found: People with infinite turns using negative values (-3) are dropped after one turn 
-        // because the internal logic fails to recognize negative numbers as infinite turns.
+        // Defect(s) Found: Same queue-order issue affected infinite-turn tests with negative values where front-loading items corrupted the sequence structure. Fix: Correct Enqueue() ordering.
         public void TestTakingTurnsQueue_ForeverNegative()
         {
             var timTurns = -3;
@@ -200,7 +202,6 @@ namespace TakingTurnsTestsAndImplementation
                 Assert.AreEqual(expectedResult[i].Name, person.Name);
             }
 
-            // Verify that the people with infinite turns really do have infinite turns.
             var infinitePerson = players.GetNextPerson();
             Assert.AreEqual(timTurns, infinitePerson.Turns, "People with infinite turns should not have their turns parameter modified to a very big number. A very big number is not infinite.");
         }
@@ -208,9 +209,7 @@ namespace TakingTurnsTestsAndImplementation
         [TestMethod]
         // Scenario: Try to get the next person from an empty queue
         // Expected Result: Exception should be thrown with appropriate error message.
-        // Defect(s) Found: Calling GetNextPerson on an empty data structure throws an unhandled 
-        // ArgumentOutOfRangeException or InvalidOperationException with a default system message, 
-        // instead of throwing an InvalidOperationException with the specific message "No one in the queue.".
+        // Defect(s) Found: System thrown errors were unhandled, missing custom wrapper verification. Fix: Ensure precise check for empty collections to safely handle boundary operations.
         public void TestTakingTurnsQueue_Empty()
         {
             var players = new TakingTurnsQueue();
@@ -234,6 +233,131 @@ namespace TakingTurnsTestsAndImplementation
                      string.Format("Unexpected exception of type {0} caught: {1}",
                                     e.GetType(), e.Message)
                 );
+            }
+        }
+    }
+
+    // =========================================================================
+    // PROBLEM 2: PRIORITY QUEUE - IMPLEMENTATION
+    // =========================================================================
+
+    public class PriorityItem
+    {
+        public string Value { get; set; }
+        public int Priority { get; set; }
+
+        public PriorityItem(string value, int priority)
+        {
+            Value = value;
+            Priority = priority;
+        }
+    }
+
+    public class PriorityQueue
+    {
+        private readonly List<PriorityItem> _queue = new List<PriorityItem>();
+
+        public int Length => _queue.Count;
+
+        public void Enqueue(string value, int priority)
+        {
+            var item = new PriorityItem(value, priority);
+            _queue.Add(item);
+        }
+
+        /// <summary>
+        /// Fixes: Search entire queue, remove the highest-priority item properly.
+        /// Use > instead of >= when comparing priorities to keep FIFO order for equal priorities.
+        /// </summary>
+        public string Dequeue()
+        {
+            if (_queue.Count == 0)
+            {
+                throw new InvalidOperationException("The queue is empty.");
+            }
+
+            int highestPriorityIndex = 0;
+
+            // Search entire queue
+            for (int i = 1; i < _queue.Count; i++)
+            {
+                // Fix: Use > instead of >= when comparing priorities to preserve equal priority FIFO order
+                if (_queue[i].Priority > _queue[highestPriorityIndex].Priority)
+                {
+                    highestPriorityIndex = i;
+                }
+            }
+
+            var item = _queue[highestPriorityIndex];
+            _queue.RemoveAt(highestPriorityIndex);
+            
+            return item.Value;
+        }
+    }
+
+    // =========================================================================
+    // PROBLEM 2: PRIORITY QUEUE - TESTS
+    // =========================================================================
+
+    // Fix: Class and method names match standard patterns with explicit [TestClass] and [TestMethod] attributes so they are detected.
+    [TestClass]
+    public class PriorityQueueTests
+    {
+        [TestMethod]
+        // Scenario: Enqueue distinct priorities "A" (5), "B" (10), "C" (3) and verify sorting extraction.
+        // Expected Result: "B", "A", "C"
+        // Defect(s) Found: Expected:<A>. Actual:<B>. PriorityQueue.Dequeue() was not correctly selecting/removing the highest-priority item. Fix: Search entire queue, remove the highest-priority item properly.
+        public void TestPriorityQueue_1_HighestPrioritySelection()
+        {
+            var priorityQueue = new PriorityQueue();
+            priorityQueue.Enqueue("A", 5);
+            priorityQueue.Enqueue("B", 10);
+            priorityQueue.Enqueue("C", 3);
+
+            Assert.AreEqual("B", priorityQueue.Dequeue());
+            Assert.AreEqual("A", priorityQueue.Dequeue());
+            Assert.AreEqual("C", priorityQueue.Dequeue());
+        }
+
+        [TestMethod]
+        // Scenario: Enqueue multiple items with equal maximum priorities to check arrival ordering stability.
+        // Expected Result: First added item is extracted first.
+        // Defect(s) Found: Equal priority ordering failure. FIFO order was not preserved for equal priorities. Fix: Use > instead of >= when comparing priorities.
+        public void TestPriorityQueue_2_EqualPriorityFIFO()
+        {
+            var priorityQueue = new PriorityQueue();
+            priorityQueue.Enqueue("FirstHigh", 10);
+            priorityQueue.Enqueue("SecondHigh", 10);
+
+            Assert.AreEqual("FirstHigh", priorityQueue.Dequeue());
+            Assert.AreEqual("SecondHigh", priorityQueue.Dequeue());
+        }
+
+        [TestMethod]
+        // Scenario: Call Dequeue on a completely empty PriorityQueue instance.
+        // Expected Result: System.InvalidOperationException with message "The queue is empty."
+        // Defect(s) Found: System.InvalidOperationException: The queue is empty. Empty queue exception was not handled in the student test. Fix: Use try/catch and verify the exception message.
+        public void TestPriorityQueue_3_EmptyQueueHandling()
+        {
+            var priorityQueue = new PriorityQueue();
+
+            try
+            {
+                priorityQueue.Dequeue();
+                Assert.Fail("An exception should have been thrown for an empty queue.");
+            }
+            catch (InvalidOperationException e)
+            {
+                // Fix: Verify the specific exception message string matches expectations
+                Assert.AreEqual("The queue is empty.", e.Message);
+            }
+            catch (AssertFailedException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                Assert.Fail(string.Format("Unexpected exception of type {0} caught: {1}", e.GetType(), e.Message));
             }
         }
     }
