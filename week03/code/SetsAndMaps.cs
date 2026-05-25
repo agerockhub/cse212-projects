@@ -1,3 +1,8 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
 using System.Text.Json;
 
 public static class SetsAndMaps
@@ -7,20 +12,22 @@ public static class SetsAndMaps
     /// </summary>
     public static string[] FindPairs(string[] words)
     {
-        var seen = new HashSet<string>();
-        var results = new List<string>();
+        HashSet<string> seen = new HashSet<string>();
+        List<string> results = new List<string>();
 
-        foreach (var word in words)
+        foreach (string word in words)
         {
-            // Reverse the 2-character word safely using character array positions
-            string reversed = $"{word[1]}{word[0]}";
+            if (word == null || word.Length < 2) continue;
+
+            // Explicitly reverse the two characters using C# array notation
+            string reversed = "" + word[1] + word[0];
 
             // Special case: if letters are identical (e.g., "aa"), skip it per instructions
             if (word == reversed) continue;
 
             if (seen.Contains(reversed))
             {
-                results.Add($"{reversed} & {word}");
+                results.Add(reversed + " & " + word);
             }
             else
             {
@@ -36,13 +43,14 @@ public static class SetsAndMaps
     /// </summary>
     public static Dictionary<string, int> SummarizeDegrees(string filename)
     {
-        var degrees = new Dictionary<string, int>();
-        foreach (var line in File.ReadLines(filename))
+        Dictionary<string, int> degrees = new Dictionary<string, int>();
+        foreach (string line in File.ReadLines(filename))
         {
-            var fields = line.Split(",");
+            string[] fields = line.Split(',');
             // Ensure the line contains at least 4 columns (Index 3 is the 4th column)
             if (fields.Length >= 4)
             {
+                // Safely clean whitespace manually to avoid any extension compatibility problems
                 string degree = fields[3].Trim();
                 if (degrees.ContainsKey(degree))
                 {
@@ -63,13 +71,21 @@ public static class SetsAndMaps
     /// </summary>
     public static bool IsAnagram(string word1, string word2)
     {
-        var counts = new Dictionary<char, int>();
+        Dictionary<char, int> counts = new Dictionary<char, int>();
 
         // Process first word: ignore spaces, normalize to lowercase
         foreach (char c in word1.ToLower())
         {
             if (char.IsWhiteSpace(c)) continue;
-            counts[c] = counts.GetValueOrDefault(c, 0) + 1;
+
+            if (counts.ContainsKey(c))
+            {
+                counts[c]++;
+            }
+            else
+            {
+                counts[c] = 1;
+            }
         }
 
         // Process second word: subtract from counts
@@ -92,47 +108,28 @@ public static class SetsAndMaps
     public static string[] EarthquakeDailySummary()
     {
         const string uri = "https://usgs.gov";
-        using var client = new HttpClient();
-        using var getRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
-        using var jsonStream = client.Send(getRequestMessage).Content.ReadAsStream();
-        using var reader = new StreamReader(jsonStream);
-        var json = reader.ReadToEnd();
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        using HttpClient client = new HttpClient();
+        using HttpRequestMessage getRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
+        using Stream jsonStream = client.Send(getRequestMessage).Content.ReadAsStream();
+        using StreamReader reader = new StreamReader(jsonStream);
+        string json = reader.ReadToEnd();
+        JsonSerializerOptions options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-        var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
+        // Uses the FeatureCollection model defined inside FeatureCollection.cs
+        FeatureCollection featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
 
-        var summary = new List<string>();
-        if (featureCollection?.Features != null)
+        List<string> summary = new List<string>();
+        if (featureCollection != null && featureCollection.Features != null)
         {
-            foreach (var feature in featureCollection.Features)
+            foreach (Feature feature in featureCollection.Features)
             {
-                if (feature.Properties != null)
+                if (feature != null && feature.Properties != null)
                 {
-                    summary.Add($"{feature.Properties.Place} - Mag {feature.Properties.Mag}");
+                    summary.Add(feature.Properties.Place + " - Mag " + feature.Properties.Mag);
                 }
             }
         }
 
         return summary.ToArray();
     }
-}
-
-// ============================================================================
-// SUPPORTING DATA MODELS FOR PROBLEM 5 DESERIALIZATION
-// ============================================================================
-
-public class FeatureCollection
-{
-    public List<Feature>? Features { get; set; }
-}
-
-public class Feature
-{
-    public EarthquakeProperties? Properties { get; set; }
-}
-
-public class EarthquakeProperties
-{
-    public string Place { get; set; } = string.Empty;
-    public double? Mag { get; set; } // Nullable handles potential missing values safely
 }
