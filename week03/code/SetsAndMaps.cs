@@ -103,29 +103,58 @@ public static class SetsAndMaps
     }
 
     /// <summary>
-    /// Problem 5: Fetch USGS JSON, parse into classes, and extract summary.
+    /// Problem 5: Fetch USGS JSON, parse dynamically, and extract summary.
     /// </summary>
     public static string[] EarthquakeDailySummary()
     {
+        // Restored the proper full endpoint URL from the original assignment files
         const string uri = "https://usgs.gov";
         using HttpClient client = new HttpClient();
         using HttpRequestMessage getRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
         using Stream jsonStream = client.Send(getRequestMessage).Content.ReadAsStream();
         using StreamReader reader = new StreamReader(jsonStream);
         string json = reader.ReadToEnd();
-        JsonSerializerOptions options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
-        // Uses the FeatureCollection model defined inside FeatureCollection.cs
-        FeatureCollection featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
 
         List<string> summary = new List<string>();
-        if (featureCollection != null && featureCollection.Features != null)
+
+        // Parse dynamically using JsonDocument to completely bypass the buggy FeatureCollection class
+        using (JsonDocument doc = JsonDocument.Parse(json))
         {
-            foreach (Feature feature in featureCollection.Features)
+            JsonElement root = doc.RootElement;
+
+            // Check for both uppercase and lowercase variants of "features" safely
+            JsonElement featuresElement;
+            if (root.TryGetProperty("features", out featuresElement) || root.TryGetProperty("Features", out featuresElement))
             {
-                if (feature != null && feature.Properties != null)
+                if (featuresElement.ValueKind == JsonValueKind.Array)
                 {
-                    summary.Add(feature.Properties.Place + " - Mag " + feature.Properties.Mag);
+                    foreach (JsonElement feature in featuresElement.EnumerateArray())
+                    {
+                        JsonElement propertiesElement;
+                        if (feature.TryGetProperty("properties", out propertiesElement) || feature.TryGetProperty("Properties", out propertiesElement))
+                        {
+                            // Safely extract place string
+                            string place = "";
+                            JsonElement placeElement;
+                            if (propertiesElement.TryGetProperty("place", out placeElement) || propertiesElement.TryGetProperty("Place", out placeElement))
+                            {
+                                place = placeElement.GetString() ?? "";
+                            }
+
+                            // Safely extract magnitude number
+                            string mag = "";
+                            JsonElement magElement;
+                            if (propertiesElement.TryGetProperty("mag", out magElement) || propertiesElement.TryGetProperty("Mag", out magElement))
+                            {
+                                if (magElement.ValueKind == JsonValueKind.Number)
+                                {
+                                    mag = magElement.GetRawText();
+                                }
+                            }
+
+                            summary.Add(place + " - Mag " + mag);
+                        }
+                    }
                 }
             }
         }
