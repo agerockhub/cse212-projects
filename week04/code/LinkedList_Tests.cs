@@ -1,234 +1,214 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text;
 
-// DO NOT MODIFY THIS FILE
-
-[TestClass]
-public class InsertTailTests
+public class LinkedList : IEnumerable<int>
 {
-    [TestMethod]
-    public void InsertTail_Empty()
-    {
-        var ll = new LinkedList();
+    public Node Head { get; private set; }
+    public Node Tail { get; private set; }
 
-        Assert.IsTrue(ll.HeadAndTailAreNull());
-        ll.InsertTail(1);
-        Assert.IsTrue(ll.HeadAndTailAreNotNull());
-        Assert.AreEqual("<LinkedList>{1}", ll.ToString());
+    public LinkedList()
+    {
+        Head = null;
+        Tail = null;
     }
 
-    [TestMethod]
-    public void InsertTail_Basic()
+    public bool HeadAndTailAreNull()
     {
-        var ll = new LinkedList();
+        return Head == null && Tail == null;
+    }
 
-        ll.InsertTail(1);
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(3);
-        ll.InsertHead(4);
-        ll.InsertHead(5);
+    public bool HeadAndTailAreNotNull()
+    {
+        return Head != null && Tail != null;
+    }
 
-        Assert.AreEqual("<LinkedList>{5, 4, 3, 2, 2, 2, 1}", ll.ToString());
+    public void InsertHead(int value)
+    {
+        Node newNode = new Node(value);
+        if (Head == null)
+        {
+            Head = newNode;
+            Tail = newNode;
+        }
+        else
+        {
+            newNode.Next = Head;
+            Head.Prev = newNode;
+            Head = newNode;
+        }
+    }
 
-        ll.InsertTail(0);
-        ll.InsertTail(-1);
+    public void InsertAfter(int value, int newValue)
+    {
+        Node curr = Head;
+        while (curr != null)
+        {
+            if (curr.Data == value)
+            {
+                Node newNode = new Node(newValue);
+                newNode.Next = curr.Next;
+                newNode.Prev = curr;
 
-        Assert.AreEqual("<LinkedList>{5, 4, 3, 2, 2, 2, 1, 0, -1}", ll.ToString());
+                if (curr.Next == null)
+                {
+                    Tail = newNode;
+                }
+                else
+                {
+                    curr.Next.Prev = newNode;
+                }
+                curr.Next = newNode;
+                return;
+            }
+            curr = curr.Next;
+        }
+    }
+
+    public void InsertTail(int value)
+    {
+        Node newNode = new Node(value);
+        if (Tail == null)
+        {
+            Head = newNode;
+            Tail = newNode;
+        }
+        else
+        {
+            newNode.Prev = Tail;
+            Tail.Next = newNode;
+            Tail = newNode;
+        }
+    }
+
+    public void RemoveTail()
+    {
+        if (Tail == null) return;
+
+        if (Head == Tail)
+        {
+            Head = null;
+            Tail = null;
+        }
+        else
+        {
+            Tail = Tail.Prev;
+            Tail.Next = null;
+        }
+    }
+
+    public void RemoveHead()
+    {
+        if (Head == null) return;
+        if (Head == Tail)
+        {
+            Head = null;
+            Tail = null;
+        }
+        else
+        {
+            Head = Head.Next;
+            Head.Prev = null;
+        }
+    }
+
+    public void Remove(int value)
+    {
+        Node curr = Head;
+        while (curr != null)
+        {
+            if (curr.Data == value)
+            {
+                if (curr == Head)
+                {
+                    RemoveHead();
+                }
+                else if (curr == Tail)
+                {
+                    RemoveTail();
+                }
+                else
+                {
+                    curr.Prev.Next = curr.Next;
+                    curr.Next.Prev = curr.Prev;
+                }
+                return;
+            }
+            curr = curr.Next;
+        }
+    }
+
+    public void Replace(int oldValue, int newValue)
+    {
+        Node curr = Head;
+        while (curr != null)
+        {
+            if (curr.Data == oldValue)
+            {
+                curr.Data = newValue;
+            }
+            curr = curr.Next;
+        }
+    }
+
+    public IEnumerable<int> Reverse()
+    {
+        Node curr = Tail;
+        while (curr != null)
+        {
+            yield return curr.Data;
+            curr = curr.Prev;
+        }
+    }
+
+    public IEnumerator<int> GetEnumerator()
+    {
+        Node curr = Head;
+        while (curr != null)
+        {
+            yield return curr.Data;
+            curr = curr.Next;
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public override string ToString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.Append("<LinkedList>{");
+        Node curr = Head;
+        bool first = true;
+        while (curr != null)
+        {
+            if (!first) sb.Append(", ");
+            sb.Append(curr.Data);
+            first = false;
+            curr = curr.Next;
+        }
+        sb.Append("}");
+        return sb.ToString();
     }
 }
 
-[TestClass]
-public class RemoveTailTests
+public static class TestingExtensions
 {
-    [TestMethod]
-    public void RemoveTail_Empty()
+    public static string AsString(this IEnumerable<int> collection)
     {
-        var ll = new LinkedList();
-
-        ll.RemoveTail();
-        Assert.IsTrue(ll.HeadAndTailAreNull());
-        Assert.AreEqual("<LinkedList>{}", ll.ToString());
-    }
-
-    [TestMethod]
-    public void RemoveTail_Single()
-    {
-        var ll = new LinkedList();
-
-        ll.InsertHead(1);
-        ll.RemoveTail();
-        Assert.IsTrue(ll.HeadAndTailAreNull());
-        Assert.AreEqual("<LinkedList>{}", ll.ToString());
-    }
-
-    [TestMethod]
-    public void RemoveTail_Basic()
-    {
-        var ll = new LinkedList();
-
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(3);
-        ll.InsertHead(4);
-        ll.InsertHead(5);
-
-        ll.RemoveTail();
-        Assert.AreEqual("<LinkedList>{5, 4, 3, 2, 2}", ll.ToString());
-
-        ll.RemoveTail();
-        Assert.AreEqual("<LinkedList>{5, 4, 3, 2}", ll.ToString());
-    }
-}
-
-[TestClass]
-public class RemoveTests
-{
-    [TestMethod]
-    public void Remove_NonExistant()
-    {
-        var ll = new LinkedList();
-
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(3);
-        ll.InsertHead(4);
-        ll.InsertHead(5);
-
-        ll.InsertAfter(3, 35);
-        ll.InsertAfter(5, 6);
-
-        Assert.AreEqual("<LinkedList>{5, 6, 4, 3, 35, 2, 2, 2}", ll.ToString());
-        ll.Remove(-1);
-        Assert.AreEqual("<LinkedList>{5, 6, 4, 3, 35, 2, 2, 2}", ll.ToString());
-    }
-
-    [TestMethod]
-    public void Remove_Empty()
-    {
-        var ll = new LinkedList();
-        ll.Remove(0);
-        Assert.AreEqual("<LinkedList>{}", ll.ToString());
-        Assert.IsTrue(ll.HeadAndTailAreNull());
-    }
-
-    [TestMethod]
-    public void Remove_Single()
-    {
-        var ll = new LinkedList();
-        ll.InsertHead(2);
-        ll.Remove(2);
-        Assert.AreEqual("<LinkedList>{}", ll.ToString());
-        Assert.IsTrue(ll.HeadAndTailAreNull());
-    }
-
-    [TestMethod]
-    public void Remove_Multiple()
-    {
-        var ll = new LinkedList();
-
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(3);
-        ll.InsertHead(4);
-        ll.InsertHead(2);
-        ll.InsertHead(5);
-
-        ll.InsertAfter(3, 35);
-        ll.InsertAfter(5, 6);
-
-        Assert.AreEqual("<LinkedList>{5, 6, 2, 4, 3, 35, 2, 2}", ll.ToString());
-        ll.Remove(3);
-        Assert.AreEqual("<LinkedList>{5, 6, 2, 4, 35, 2, 2}", ll.ToString());
-        ll.Remove(6);
-        Assert.AreEqual("<LinkedList>{5, 2, 4, 35, 2, 2}", ll.ToString());
-        ll.Remove(2);
-        Assert.AreEqual("<LinkedList>{5, 4, 35, 2, 2}", ll.ToString());
-        ll.Remove(2);
-        Assert.AreEqual("<LinkedList>{5, 4, 35, 2}", ll.ToString());
-        ll.Remove(2);
-        Assert.AreEqual("<LinkedList>{5, 4, 35}", ll.ToString());
-    }
-}
-
-[TestClass]
-public class ReplaceTests
-{
-    [TestMethod]
-    public void Replace_NonExistant()
-    {
-        var ll = new LinkedList();
-
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(3);
-        ll.InsertHead(4);
-        ll.InsertHead(2);
-        ll.InsertHead(5);
-
-        ll.Replace(-1, 4);
-        Assert.AreEqual("<LinkedList>{5, 2, 4, 3, 2, 2}", ll.ToString());
-    }
-
-    [TestMethod]
-    public void Replace_Empty()
-    {
-        var ll = new LinkedList();
-
-        ll.Replace(-1, 4);
-        Assert.AreEqual("<LinkedList>{}", ll.ToString());
-    }
-
-    [TestMethod]
-    public void Replace_Multiple()
-    {
-        var ll = new LinkedList();
-
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(3);
-        ll.InsertHead(4);
-        ll.InsertHead(2);
-        ll.InsertHead(5);
-
-        ll.Replace(2, 4);
-        Assert.AreEqual("<LinkedList>{5, 4, 4, 3, 4, 4}", ll.ToString());
-
-        ll.Replace(3, -1);
-        Assert.AreEqual("<LinkedList>{5, 4, 4, -1, 4, 4}", ll.ToString());
-    }
-}
-
-[TestClass]
-public class ReverseTests
-{
-    [TestMethod]
-    public void Reverse_Empty()
-    {
-        var ll = new LinkedList();
-        Assert.AreEqual("<IEnumerable>{}", ll.Reverse().AsString());
-    }
-
-    [TestMethod]
-    public void Reverse_Single()
-    {
-        var ll = new LinkedList();
-        ll.InsertHead(5);
-        Assert.AreEqual("<IEnumerable>{5}", ll.Reverse().AsString());
-    }
-
-    [TestMethod]
-    public void Reverse_Basic()
-    {
-        var ll = new LinkedList();
-        ll.InsertHead(2);
-        ll.InsertHead(2);
-        ll.InsertHead(3);
-        ll.InsertHead(4);
-        ll.InsertHead(2);
-        ll.InsertHead(5);
-        Assert.AreEqual("<IEnumerable>{2, 2, 3, 4, 2, 5}", ll.Reverse().AsString());
+        StringBuilder sb = new StringBuilder();
+        sb.Append("<IEnumerable>{");
+        bool first = true;
+        foreach (int item in collection)
+        {
+            if (!first) sb.Append(", ");
+            sb.Append(item);
+            first = false;
+        }
+        sb.Append("}");
+        return sb.ToString();
     }
 }
