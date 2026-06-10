@@ -159,6 +159,7 @@ public static class Recursion
     }
 }
 
+
 /// <summary>
 /// Support extensions safely providing formatting outputs to match assignment results hooks.
 /// </summary>
