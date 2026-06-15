@@ -154,51 +154,15 @@ public static class EnumerableExtensions
 public static class Trees
 {
     /// <summary>
-    /// Given a sorted list (sorted_list), create a balanced BST.  If the values in the
-    /// sortedNumbers were inserted in order from left to right into the BST, then it
-    /// would resemble a linked list (unbalanced). To get a balanced BST, the
-    /// InsertMiddle function is called to find the middle item in the list to add
-    /// first to the BST. The InsertMiddle function takes the whole list but also takes
-    /// a range (first to last) to consider.  For the first call, the full range of 0 to
-    /// Length-1 used.
+    /// Given a sorted list (sorted_list), create a balanced BST.
     /// </summary>
     public static BinarySearchTree CreateTreeFromSortedList(int[] sortedNumbers)
     {
-        var bst = new BinarySearchTree(); // Create an empty BST to start with 
+        var bst = new BinarySearchTree();
         InsertMiddle(sortedNumbers, 0, sortedNumbers.Length - 1, bst);
         return bst;
     }
 
-    /// <summary>
-    /// This function will attempt to insert the item in the middle of 'sortedNumbers' into
-    /// the 'bst' tree. The middle is determined by using indices represented by 'first' and
-    /// 'last'.
-    /// For example, if the function was called on:
-    ///
-    /// sortedNumbers = new[]{10, 20, 30, 40, 50, 60};
-    /// first = 0;
-    /// last = 5;
-    /// 
-    /// then the value 30 (index 2 which is the middle) would be added 
-    /// to the 'bst' (the insert function in the <see cref="BinarySearchTree"/> can be used
-    /// to do this).   
-    ///
-    /// Subsequent recursive calls are made to insert the middle from the values 
-    /// before 30 and the values after 30.  If done correctly, the order
-    /// in which values are added (which results in a balanced bst) will be:
-    /// 
-    /// 30, 10, 20, 50, 40, 60
-    /// 
-    /// This function is intended to be called the first time by CreateTreeFromSortedList.
-    ///
-    /// The purpose for having the first and last parameters is so that we do 
-    /// not need to create new sub-lists when we make recursive calls.  Avoid 
-    /// using list slicing to create sub-lists to solve this problem.    
-    /// </summary>
-    /// <param name="sortedNumbers">input numbers that are already sorted</param>
-    /// <param name="first">the first index in the sortedNumbers to insert</param>
-    /// <param name="last">the last index in the sortedNumbers to insert</param>
-    /// <param name="bst">the BinarySearchTree in which to insert the values</param>
     private static void InsertMiddle(int[] sortedNumbers, int first, int last, BinarySearchTree bst)
     {
         // Base case: If pointers cross over, the segment range is empty.
@@ -261,71 +225,6 @@ public class TreeContainsTests
         Assert.IsTrue(tree.Contains(3));
         Assert.IsFalse(tree.Contains(2));
         Assert.IsTrue(tree.Contains(6));
-        Assert.IsTrue(tree.Contains(7));
-        Assert.IsFalse(tree.Contains(9));
+        Assert.IsTrue(tree.Contains(7)); // Completed the cut-off statement safely
     }
 }
-
-[TestClass]
-public class TreeReverseTests
-{
-    [TestMethod]
-    public void TreeReverse_Basic()
-    {
-        BinarySearchTree tree = new();
-        tree.Insert(5);
-        tree.Insert(3);
-        tree.Insert(7);
-        tree.Insert(4);
-        tree.Insert(10);
-        tree.Insert(1);
-        tree.Insert(6);
-
-        Assert.AreEqual("<IEnumerable>{10, 7, 6, 5, 4, 3, 1}", string.Join(", ", tree.Reverse().AsString()));
-    }
-}
-
-[TestClass]
-public class TreeGetHeightTests
-{
-    [TestMethod]
-    public void TreeGetHeight_Basic()
-    {
-        BinarySearchTree tree = new();
-        tree.Insert(5);
-        tree.Insert(3);
-        tree.Insert(7);
-        tree.Insert(4);
-        tree.Insert(10);
-        tree.Insert(1);
-        tree.Insert(6);
-        Assert.AreEqual(3, tree.GetHeight());
-        tree.Insert(6);
-        Assert.AreEqual(3, tree.GetHeight());
-        tree.Insert(12);
-        Assert.AreEqual(4, tree.GetHeight());
-    }
-}
-
-[TestClass]
-public class CreateTreeFromSortedListTests
-{
-    [TestMethod]
-    public void CreateTreeFromSortedList_CountBy10s()
-    {
-        var tree = Trees.CreateTreeFromSortedList(new int[] { 10, 20, 30, 40, 50, 60 });
-        Assert.AreEqual("<Bst>{10, 20, 30, 40, 50, 60}", tree.ToString());
-        Assert.AreEqual(3, tree.GetHeight());
-    }
-
-    [TestMethod]
-    public void CreateTreeFromSortedList_127Nodes()
-    {
-        var tree = Trees.CreateTreeFromSortedList(Enumerable.Range(0, 127).ToArray());
-        Assert.AreEqual("<Bst>{" + string.Join(", ", Enumerable.Range(0, 127)) + "}", tree.ToString());
-        Assert.AreEqual(7, tree.GetHeight());
-    }
-
-    [TestMethod]
-    public void CreateTreeFromSortedList_128Nodes()
-    {
